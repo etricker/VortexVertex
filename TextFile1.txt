@@ -1,0 +1,62 @@
+	for (int row = 0; row < mask.rows; row++) {
+
+		for (int col = 0; col < mask.cols; col++)
+		{
+			if (mask.at<bool>(row, col) != object) continue; // irrelevant pixel
+			auto vertex = boost::add_vertex(graph);
+			graph[vertex] = Point(col, row);
+			pixels_vertices.insert(std::make_pair(Point(col, row), vertex));
+		}
+
+	}
+	// Add horizontal edges
+	std::cout << "adding edges...\n";
+	for (int row = 0; row+1 < mask.rows; row++) {
+		
+		for (int col = 0; col + 1 < mask.cols; col++)
+		{
+			Point p0(col, row), p1(col + 1, row),p2(col, row), p3(col, row + 1);
+			if (mask.at<bool>(p0) != object or mask.at<bool>(p1) != object) continue;
+			boost::add_edge(pixels_vertices[p0], pixels_vertices[p1], graph);
+			if (mask.at<bool>(p2) != object or mask.at<bool>(p3) != object) continue;
+			boost::add_edge(pixels_vertices[p2], pixels_vertices[p3], graph);
+		}
+
+	}
+	// Add vertical edges
+	std::cout << "adding vertical edges...\n";
+	for (int row = 0; row + 1 < mask.rows; row++) {
+
+		for (int col = 0; col < mask.cols; col++)
+		{
+			Point p0(col, row), p1(col, row + 1);
+			if (mask.at<bool>(p0) != object or mask.at<bool>(p1) != object) continue;
+			boost::add_edge(pixels_vertices[p0], pixels_vertices[p1], graph);
+		}
+
+	}
+
+
+
+
+	std::cout << "adding edges...\n";
+	for (int row = 0; row  < mask.rows; row++) {
+
+		for (int col = 0; col  < mask.cols; col++)
+		{
+			Point p0, p1, p2, p3;
+			if(col!=mask.cols){
+				p0=Point(col, row); 
+				p1=Point(col + 1, row);
+				Add_Edge(mask, object, graph, p0, p1, pixels_vertices);
+			}
+
+			if(row!=mask.rows){
+				p2=Point(col, row); 
+				p3=Point(col + 1, row);
+				Add_Edge(mask, object, graph, p2, p3, pixels_vertices);
+			}
+
+
+		}
+	}

@@ -1,0 +1,538 @@
+
+
+
+			states = Mat_<int>(mask.rows, mask.cols);
+			
+			Mat_<int> states2(mask.rows, mask.cols, 0);
+			auto black = Vec3b(0, 0, 0);
+		
+			Mat boundaries(mask.rows, mask.cols, CV_8UC3, Vec3b(0, 0, 0));
+	
+			Mat_<bool> ambiguous(mask.rows, mask.cols, false);
+			//Mat ambiguous(mask.rows, mask.cols, CV_8UC1);
+
+			Mat_<bool>confirmedEdges(mask.rows, mask.cols, false);
+			
+			Mat skeletonHopefully= Mat::zeros(mask.rows,  mask.cols, CV_8UC1);
+			
+
+			std::cout << "classifying pixels\n";
+			classifyPixels(image_mask, states, ambiguous, confirmedEdges);
+			//boundaryGraphVertices(graph, states,boundaries);
+			//boundaryGraphEdges(graph, states, boundaries);
+			//colorEnds(potentialEnds, graph, boundaries);
+
+			namedWindow("Result", WINDOW_NORMAL);
+			imshow("Result",image_mask);
+
+			namedWindow("Masked", WINDOW_NORMAL);
+			imshow("Masked", boundaries);
+			imwrite("outputskeleton.png", boundaries);
+			//boost::print_graph(graph);
+			// Subtract boundary vertices
+
+			bool getSkeleton(Mat& img, Mat& out) {
+	//adaptiveThreshold(img, img, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 69, -1);
+	std::cout << "getSkeleton launched\n";
+	namedWindow("ambiguskel: ", WINDOW_NORMAL);// Create a window for display.
+	
+	//Mat skel(img.size(), CV_8UC1, Scalar(0));
+	Mat temp;
+	Mat eroded;
+	Mat element{ getStructuringElement(MORPH_CROSS, Size(3, 3)) };
+
+
+
+	bool done;
+	//do
+	{
+		erode(img, eroded, element);
+		dilate(eroded, temp, element); // temp = open(img)
+		subtract(img, temp, temp);
+		bitwise_or(out, temp, out);
+		eroded.copyTo(img);
+
+		done = (countNonZero(img) == 0);
+	} while (!done);
+	
+	imshow("ambiguskel: ", out);
+	
+	return true;
+}
+
+//char neighbourConfiguration(Point object, Mat& image_mask) {
+//	int activeNeighbours = 0;
+//	Vec3b white = Vec3b(255, 255, 255);
+//	Point checkThisPoint;
+//	for (auto p : shifts4) {
+//		checkThisPoint = object + p;
+//
+//		if (checkThisPoint.x >= 0 && checkThisPoint.y >= 0 && checkThisPoint.x < image_mask.cols && checkThisPoint.y <image_mask.rows)
+//			if (image_mask.at<Vec3b>(checkThisPoint) != white) {
+//				//std::cout << checkThisPoint << " is active\n";
+//				++activeNeighbours;
+//			}
+//	}
+//	return activeNeighbours;
+//}
+
+//int boundaryNeighbourCheck(Point p_a, Graph& g, Mat& image_mask) { //this is a bit messy, hopefully it works at least
+//																//Point difference = p_a - p_b;
+//	//Point p_a = g[v];
+//	std::vector<Point> neighbouringPoints;
+//	int goodNeighbours = 0;
+//	//cout << "difference between points " << p_a << ", " << p_b << " is " << difference<<"\n";
+//	for (Point p_it : shifts8) {
+//		//cout << "comparing " << difference << " with " << p << "\n";
+//		Point p = p_it + p_a;
+//		if ((p.x >= 0 && p.x<image_mask.cols) && (p.y >= 0 && p.y<image_mask.rows))
+//			if(image_mask.at<Vec3b>(p)==)
+//			neighbouringPoints.push_back(p);
+//
+//	}
+//	return neighbouringPoints;
+//}
+
+	/*
+	if ( object ) return true;
+	sort( component_sizes.begin(), component_sizes.end() );
+	std::multimap< int, int > differences;
+	for ( int i = 1; i < component_sizes.size(); i++ )
+	{
+	std::cout<<" c"<<i<<"="<<component_sizes[i];
+	differences.insert( std::make_pair( component_sizes[i] - component_sizes[i-1], i ) );
+	}
+	std::cout<<"\nDifferences:"; for ( auto  d : differences ) std::cout<<" d="<<d.first<<" i="<<d.second;
+	*/
+
+	
+
+
+//bool displayBoolMat(Mat_<bool>& in1, Mat& out) {
+//	std::cout << "combining elements of skeleton\n";
+//	//Scalar black = Scalar(0, 0, 0);
+//	//Scalar color = Scalar(20, 200, 50);
+//	std::cout << format("in1 size: %i, %i \n in2 size: %i, %i \n out size: %i, %i \n", in1.rows, in1.cols, in2.rows, in2.cols, out.rows, out.cols);
+//	
+//	for (int i = 0; i < in1.rows; ++i)
+//	{
+//		auto p1 = in1.ptr<bool>(i);
+//		auto p2 = in2.ptr<bool>(i);
+//		auto pout = out.ptr<uchar>(i);
+//		for (int j = 0; j < in1.cols; ++j)
+//		{
+//			//std::cout << format("accessing pixel %i, %i \n", j, i);
+//			if (p1[j])pout[j]=128; //from skeleton
+//			else if (p2[j])pout[j] = 255; //from edges
+//		}
+//	}
+//	namedWindow("skeleton attempt", WINDOW_NORMAL);
+//	imshow("skeleton attempt", out);
+//
+//	imwrite("skeleton.png", out);
+//	return true;
+//
+//}
+
+				if (p[j] == EDGE) {
+					//auto v = add_vertex(g);
+					//g[v] = Point(j, i);
+					image_out.at<Vec3b>(Point(j, i)) = Vec3b(51, 51, 51);
+					
+				}
+				if (p[j] == AMBIGUOUS) {
+					//auto v = add_vertex(g);
+					//g[v] = Point(j, i);
+					image_out.at<Vec3b>(Point(j, i)) = Vec3b(255, 128, 0);
+					
+				}
+				//if (p[j] == FALSE) {
+				//	//auto v = add_vertex(g);
+				//	//g[v] = Point(j, i);
+				//	image_out.at<Vec3b>(Point(j, i)) = Vec3b(255, 128, 200);
+				//}
+
+					//bool classifyPixels(Mat& image_mask, Mat_<int>& states, Mat_<bool>& ambiguousMat, Mat_<bool>& boundaryMat){
+	//	int edges = 0, falses = 0, boundaries = 0, ambiguous = 0;
+	//	for (int i = 0; i < image_mask.rows; ++i)
+	//	{
+	//		auto p = image_mask.ptr<Vec3b>(i);
+	//		for (int j = 0; j < image_mask.cols; ++j)
+	//		{
+	//			Vec3b white = (255, 255, 255);
+	//			Point currentPixel = Point(j,i);
+	//			Vec3b thisColor = p[j];
+	//			//std::cout << p[j]<<"\n";
+	//			//std::cout << currentPixel << "\n";
+	//			int activeNeighbours = countActiveNeighbours(currentPixel, image_mask);
+	//			bool notWhite = (thisColor[0] != 255 || thisColor[1] != 255 || thisColor[2] != 255);
+
+	//			if (i == 0 || j == 0 || i == image_mask.rows - 1 || j == image_mask.cols - 1) { //if edge mark pixel as edge
+	//				states.at<pixelState>(currentPixel) = EDGE;
+	//				++edges;
+
+	//			}
+	//			
+	//			else if (!notWhite) { //if pixel is white mark as FALSE
+	//				states.at<pixelState>(currentPixel) = pixelState(FALSE);
+	//				++falses;
+	//				//std::cout << "false\n";
+	//				//break;
+	//			}
+	//					
+	//			else if (activeNeighbours == 2 || activeNeighbours == 3 || activeNeighbours == 4 && notWhite) {
+	//				states.at<pixelState>(currentPixel) = pixelState(BOUNDARY);
+	//				boundaryMat.at<bool>(Point(j, i)) = true;
+	//				++boundaries;
+	//				
+	//			}
+	//			else if (activeNeighbours >4 &&  notWhite) { // 
+	//				states.at<pixelState>(currentPixel) = pixelState(AMBIGUOUS);
+	//				ambiguousMat.at<bool>(Point(j, i)) = true;
+	//				++ambiguous;
+	//				
+	//			}
+	//			
+	//			
+	//		}
+	//	}
+	//	std::cout << format("Edges: %i, White: %i, Boundaries: %i, Ambiguous: %i\n", edges, falses, boundaries, ambiguous);
+	//	return true;
+	//}
+
+
+	/**
+* Code for thinning a binary image using Zhang-Suen algorithm.
+* courtesy of the man like nash @ opencv-code.com
+*/
+/**
+* Perform one thinning iteration.
+* Normally you wouldn't call this function directly from your code.
+*
+* @param  im    Binary image with range = 0-1
+* @param  iter  0=even, 1=odd
+*/
+
+//void thinningIteration(cv::Mat& im, int iter)
+//{
+//	cv::Mat marker = cv::Mat::zeros(im.size(), CV_8UC1);
+//
+//	for (int i = 1; i < im.rows - 1; i++)
+//	{
+//		for (int j = 1; j < im.cols - 1; j++)
+//		{
+//			uchar p2 = im.at<uchar>(i - 1, j);
+//			uchar p3 = im.at<uchar>(i - 1, j + 1);
+//			uchar p4 = im.at<uchar>(i, j + 1);
+//			uchar p5 = im.at<uchar>(i + 1, j + 1);
+//			uchar p6 = im.at<uchar>(i + 1, j);
+//			uchar p7 = im.at<uchar>(i + 1, j - 1);
+//			uchar p8 = im.at<uchar>(i, j - 1);
+//			uchar p9 = im.at<uchar>(i - 1, j - 1);
+//
+//			int A = (p2 == 0 && p3 == 1) + (p3 == 0 && p4 == 1) +
+//				(p4 == 0 && p5 == 1) + (p5 == 0 && p6 == 1) +
+//				(p6 == 0 && p7 == 1) + (p7 == 0 && p8 == 1) +
+//				(p8 == 0 && p9 == 1) + (p9 == 0 && p2 == 1);
+//			int B = p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9;
+//			int m1 = iter == 0 ? (p2 * p4 * p6) : (p2 * p4 * p8);
+//			int m2 = iter == 0 ? (p4 * p6 * p8) : (p2 * p6 * p8);
+//
+//			if (A == 1 && (B >= 2 && B <= 6) && m1 == 0 && m2 == 0)
+//				marker.at<uchar>(i, j) = 1;
+//		}
+//	}
+//
+//	im &= ~marker;
+//}
+
+/**
+* Function for thinning the given binary image
+*
+* @param  im  Binary image with range = 0-255
+*/
+//void thinning(cv::Mat& im)
+//{
+//	//im /= 255;
+//
+//	cv::Mat prev = cv::Mat::zeros(im.size(), CV_8UC1);
+//	cv::Mat diff;
+//
+//	do {
+//		thinningIteration(im, 0);
+//		thinningIteration(im, 1);
+//		cv::absdiff(im, prev, diff);
+//		im.copyTo(prev);
+//	} while (cv::countNonZero(diff) > 0);
+//
+//	im *= 255;
+//}
+
+	//bool boundaryGraphEdges(Graph& g, Mat_<bool>& skel) {
+	//	auto v_all = vertices(g);
+	//	for (v_all; v_all.first != v_all.second; ++v_all.first) { //loop over all vertices
+	//		auto surrounding = neighbourCheck(*v_all.first, g, skel.size());
+	//		auto v_select = std::make_pair(v_all.first, v_all.second); //update iterator so select first is the incremented "all.first" 
+	//															  
+	//		int nloops = 0;
+	//		while (nloops <= states.cols + 1 && v_select.first != v_select.second){// && degree(*v_select.first,g)<2) {
+
+	//			Point object = g[*v_select.first];
+	//			//cout << surrounding.size() << "\n";
+	//			//cout << "object is " << object << "\n";
+	//			for (Point i : surrounding) {
+
+	//				if (object == i) //cout << "true\n";
+	//					if (!edge(*v_all.first, *v_select.first, g).second) {
+	//						add_edge(*v_all.first, *v_select.first, g);
+	//					}
+	//			}
+	//			++v_select.first;
+	//			++nloops;
+	//		}
+	//	}
+	//	return true;
+	//}
+
+	//if there is 3 empty pixels in a line adjacent to the pixel we can probably remove it? nah this is a bit shit 
+bool emptyAdjacentLine(v_d v, adjacency_range& ar, Graph& g){
+	Point centre = g[v];
+	int iplus1 = 0, iminus1 = 0, jplus1 = 0, jminus1 = 0;
+	for (auto avi = ar.first; avi != ar.second; ++avi) {
+		int x = centre.x - g[*avi].x;
+		int y = centre.y - g[*avi].y;
+		if (x == 1) { ++jplus1; }
+		if (x == -1) { ++jminus1; }
+		if (y == 1) { ++jplus1; }
+		if (y == -1) { ++jminus1; }
+	}
+	if (iplus1 == 0 || iminus1 == 0 || jplus1 == 0 || jminus1 == 0) { return true; }
+	else return false;
+}
+
+bool fourConnected(v_d v, adjacency_range& ar, Graph& g) {
+	Point centre = g[v];
+	int crossConnections=0;
+	int totalConnections = 0;
+	for (auto avi = ar.first; avi != ar.second; ++avi) {
+		++totalConnections;
+		if (g[*avi].x == centre.x || g[*avi].y == centre.y) crossConnections++;
+	}
+	int diags = totalConnections - crossConnections;
+	if (crossConnections >= diags) return true;
+	
+	else return false;
+}
+/*we want all the lines to be connected in a 8-connected manner
+* but a lot of the lines are 4 connected resulting in some lines
+* of order 3 or 4, when we want them to be of order 2, only proper
+* "branching" vertices should have this higher order, in order to
+* simplify the topology more easily. maybe try an opencv version of this?
+*/
+
+void forceDegree2(Graph& g,Graph& g2){
+	int order;
+
+	std::vector<std::pair<v_d,int>> neighbouringOrder;
+	//int degreetest;
+	boost::graph_traits<Graph>::vertex_iterator vi, vi_end, next;
+	boost::tie(vi, vi_end) = vertices(g);
+	for (next = vi; vi != vi_end; vi = next) {
+		int degreetest=0;
+		++next;
+		if (degree(*vi, g) > 2) {
+			degreetest = 0;
+			auto av = adjacent_vertices(*vi, g);
+			for (auto avi = av.first; avi != av.second; ++avi) {			
+				
+				if (((degree(*avi, g)-1) <= 2)) degreetest++;
+			}			
+			//std::cout << degreetest << "degree \n";
+			if (!degreetest && fourConnected(*vi, av, g)) {//emptyAdjacentLine(*vi,av,g)  && 
+			
+				for (auto q : neighbouringOrder) {
+					remove_edge(*vi, q.first, g);
+				}
+				/*auto v = add_vertex(g2);
+				g2[v] = g[*vi];*/
+				remove_vertex(*vi, g);
+			}
+			neighbouringOrder.clear();
+		//}else{
+		//	auto v = add_vertex(g2);
+		//	g2[v] = g[*vi];
+		}
+
+	}
+	BGL_FORALL_VERTICES(v, g, Graph) {
+		auto v2 = add_vertex(g2);
+		g2[v2] = g[v];
+	}
+	}
+
+	v_d vertexFromPoint( Point p, Graph& g ) { //really bad and slow way of doing this (BCS: O(1) WCS O(n))
+	BGL_FORALL_VERTICES(v, g, Graph) {
+		if (g[v] == p) return v;
+		
+	}
+}
+
+	//bool setPixelValues(Mat& image)
+	//{
+	//	Point grid_sizes(1 + int(image_sizes.x / size_small), 1 + int(image_sizes.y / size_small)); //subdivisions?
+	//	std::cout << "grid sizes " << grid_sizes << "\n";
+	//	Mat_<int> thresholds(grid_sizes.y, grid_sizes.x);//where is this populated??
+	//	
+	//	Mat_<Point> shifts(grid_sizes.y, grid_sizes.x);
+	//	for (int row = 0; row < shifts.rows; row++)//for each subdivided area 
+	//		for (int col = 0; col < shifts.cols; col++) {
+	//			shifts.at<Point>(row, col) = Point(col, row) * size_small;//
+	//			//if (row == col) std::cout <<"("<<row<<", "<<col<<")\t"<< shifts.at<Point>(row, col) << "\t" << thresholds(row, col)<< "\n";
+	//		}
+
+	//	//int threshold_value = 0;
+	//	pixel_values.clear();
+
+	//	
+	//	int counter{ 0 };
+	//	for (int i = 0; i < grid_sizes.y; i++) {
+	//		for (int j = 0; j < grid_sizes.x; j++)
+	//		{
+	//			int size_x = min(size_small, image.cols - shifts(i, j).x);
+	//			int size_y = min(size_small, image.rows - shifts(i, j).y);
+	//			std::cout<<"\nr="<<row<<" c="<<col<<" s="<<shifts( row, col )<<" size_x="<<size_x<<" size_y="<<size_y;
+	//			Mat image_small = image(Rect(shifts(i, j).x, shifts(i, j).y, size_x, size_y));
+	//			std::cout << "threshold value "<<counter<<" is " << thresholds(i, j)<<"\n"; //thresholds Mat_ millions for first 23 values, then zero?
+	//			counter++;
+	//			Otsu_Threshold(image_small, thresholds(i, j)); //bit that actually does the thresholds, the rest of this function is bookkeeping 
+	//			for (int row = 0; row < image_small.rows; row++)
+	//				for (int col = 0; col < image_small.cols; col++)
+	//				{
+	//					int v = (int)image_small.at<uchar>(row, col); //v=value 
+	//					if (row == col)std::cout << "threshold " << thresholds(i, j)<<"\n";
+	//					if (v <= thresholds(i, j)) pixel_values.insert(std::make_pair(v, shifts(i, j) + Point(col, row)));
+	//				}
+	//			std::cout<<"\ni="<<i<<" j="<<j<<" t="<<threshold_value;
+	//			std::cout<<" "<<thresholds( i, j );
+	//		}
+	//	}
+	//	std::cout << "thresholding done\n";
+	//	return true;
+	//}
+
+	
+		//std::cout << "about to call Remove_External_Pixels()\n";
+		//Remove_External_Pixels(mask);
+		////if ( save_images ) Save_Mask( image, mask, name + "_RE.png" );
+		//std::cout << "about to call Add_Internal_Pixels\n";
+		//Add_Internal_Pixels(mask);
+		////if ( save_images ) Save_Mask( image, mask, name + "_AI.png" );
+
+
+					//boundaryGraphEdges(graph, skel);
+			//forceDegree2(graph,skelgraph);
+			//Pixels_to_Graph(skel, true, graph, false);
+			//boundaryGraphEdges(skelgraph, skel);
+			//boost::print_graph(graph, get(boost::vertex_index, graph));
+
+			bool Otsu_Threshold(Mat const& image, int& threshold_value)
+{
+	bool print = false;
+	// Histogram
+	int bound = 160;
+	std::vector<long> histogram(256, 0);//range constructor, 255 values initialised to 0
+	for (int row = 0; row < image.rows; row++)
+		for (int col = 0; col < image.cols; col++)
+		{
+			int v = (int)image.at<uchar>(row, col); //extract pixel value
+			if (v < bound) v = (bound + v) / 2;		//compare against threshold limit, if v less than bound v=v+bound/2
+			histogram[v]++;							//increment histogram at value v	
+		}
+	//Otsu's binarization
+	std::vector<double> sums0(3, 0), sums1(3, 0); //3 element vector of doubles
+	int length = (int)histogram.size();	//256
+	for (int i = 0; i < length; i++) //loop over histogram 
+		for (int p = 0; p < 3; p++) //loop over sum elements QUICK MATHS
+			sums1[p] += histogram[i] * std::pow(i, p);  //sum(element)=histogram(value)*(value^element position) so sums1={1,value,value^2}
+	double cost, cost_min = big_constant, var0 = 0, var1 = 0;
+	for (int n = 0; n + 1 < length; n++) // n+1 = number of values on the first class
+	{
+		//if (print) std::cout << "\nn=" << n;
+		for (int p = 0; p < 3; p++)
+		{
+			int v = histogram[n] * std::pow(n, p);
+			sums0[p] += v;
+			sums1[p] -= v;
+			//if (print) std::cout << " v=" << v << " s0_" << p << "=" << sums0[p] << " s1_" << p << "=" << sums1[p];
+		}
+		if (!Variance(sums0, var0)) continue;
+		if (!Variance(sums1, var1)) continue;
+		cost = sums0[0] * var0 + sums1[0] * var1;
+		//if (print) std::cout << " v0=" << var0 << " v1=" << var1 << " c=" << cost;
+		if (cost_min > cost) { cost_min = cost; threshold_value = n; }
+	}
+	if (print) std::cout << "\ncost_min=" << cost_min << " threshold=" << threshold_value;
+	//threshold( image, image_threshold, threshold_value, 255, THRESH_BINARY );
+	return true;
+}
+
+	//void colorEnds(std::vector<v_d> potentialEnds, Graph& g, Mat& output_image){
+	//	getPotentialEnds(potentialEnds, g);
+	//	for (auto v : potentialEnds) {
+	//		//std::cout << g[v] << "\n";
+	//		output_image.at<Vec3b>(g[v]) = Vec3b(0, 255, 255 );
+	//	}
+	//}
+
+	//int countActiveNeighbours(Point object, Mat& image_mask) {
+	//	int activeNeighbours = 0;
+	//	Vec3b white = Vec3b(255, 255, 255);
+	//	Point checkThisPoint;
+	//	for (auto p : shifts8) {
+	//		checkThisPoint = object + p;
+	//		
+	//		if(checkThisPoint.x >= 0 &&checkThisPoint.y >= 0 && checkThisPoint.x < image_mask.cols && checkThisPoint.y <image_mask.rows)
+	//			if (image_mask.at<Vec3b>(checkThisPoint) != white) {
+	//				//std::cout << checkThisPoint << " is active\n";
+	//				++activeNeighbours;
+	//			}
+	//	}
+	//	return activeNeighbours;
+	//}
+
+	//F U C K  T H I S  P E I C E  O F  S H I T
+void findPath(Graph& g, std::list<v_d>&path,v_d begin, v_d end) { //maybe make this into a class?
+	//const int nverts = num_vertices(g);
+	v_d pred[90000] = { 0 }; //cant find way to use num_vertices here cos runtime constants are basically impossible?
+
+	auto visit = boost::visitor( //doesnt work (access violation) maybe because graph is list?
+				 boost::make_bfs_visitor(boost::record_predecessors(pred, boost::on_tree_edge()))).
+				 vertex_index_map(boost::identity_property_map()
+				 );
+	//auto visit=
+
+	//colorMap cm=get()
+	//auto cm = boost::color_map(get(&externalProps::color, g)).vis;
+
+	boost::breadth_first_search(g, begin,visit);
+	for (v_d v = end; v != begin; v = pred[v]) {
+		path.push_back(v);
+	}
+	path.push_back(begin);
+}
+
+	for (auto vcit:branches) {
+		if (countIt>0) {
+			//path.clear();
+			const Point beginP = old.centre;
+			const Point endP = vcit.centre;
+			v_d start = *g_full.vertex_by_property(beginP);
+			v_d fin = *g_full.vertex_by_property(endP);
+			
+			std::cout << path.empty() << "\n"; //SOME-FUCKING-HOW removing these couts results in a access violation
+			for(auto v:path){
+				std::cout << g_full[v] << "\n";
+			}
+		}
+		old = vcit;
+		++countIt;

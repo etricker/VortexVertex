@@ -1,0 +1,163 @@
+bool findPath(Graph& g, std::vector<v_d>*pathalt, v_d start) {
+	std::cout << "in findpath\n";
+	std::queue<v_d> Q;
+	std::vector<bool> visited(num_vertices(g),false);
+	//pathalt = new std::vector<v_d>(num_vertices(g));
+	std::map<int, v_d> path;
+	(num_vertices(g), false);
+	int indexCounter = 0;
+
+	BGL_FORALL_VERTICES(v, g, Graph) {
+		path.insert(std::make_pair(indexCounter, v));
+		++indexCounter;
+	}
+	int startindex = path.at(start); //retrieve index for start vertex
+	assert(startindex < num_vertices(g));
+	std::cout << "start index: " << startindex;
+	visited[startindex] = true; //mark start as visited
+	Q.push(start); //enqueue start vertex
+
+	do { //repeat process whilst queue is not empty
+		v_d current = Q.front(); //load at first vertex from queue
+		
+		Q.pop(); //pop front off queue
+		auto adjv = adjacent_vertices(current, g); //get adjacency range for current vertex
+		for (auto v = adjv.first; v != adjv.second; ++v) { //for all adjacent verts		
+			int index = path.at(*v);			
+			assert(index < num_vertices(g));
+
+			if (!visited[index]) {
+				visited[index] = true;
+				pathalt->operator[](index) = current;
+				Q.push(*v);
+			}
+		}
+		
+	} while (!Q.empty());
+	return true;
+	
+}
+
+void specificPath(Graph&g, std::vector<v_d>& pathsegment,v_d start, v_d end,  std::vector<v_d>*pathalt) {//start is decided (arbitrarily when BFS is done)
+	v_d current = end;
+	pathsegment.clear();
+	//std::cout << g[start]<<" "<<g[end]<<"\n";
+	while (current != start) {
+		//std::cout << current - start << "\n";
+		pathsegment.push_back(current);
+		//std::cout << g[current] << " leads to ";
+		current = pathalt->at((int)current);		
+		//std::cout << g[current] << "\n";		
+	}
+	pathsegment.push_back(start);
+	
+	for (auto v : pathsegment)
+		std::cout << g[v] << "\n";
+
+}
+
+void simplifyPath(std::vector<v_d>&path, Graph&g,Graph& g_simple) {
+	v_d latestBranch = path.front();
+	v_d lastBranch;
+	std::vector<v_d> simplePath;
+	//simplePath.push_back(latestBranch);
+	for (v_d v : path) {
+		//std::cout << g[v] << "\n";
+		if (degree(v, g) > 2) {
+		
+			simplePath.push_back(v);
+		}
+	}
+	for (int i = 1; i < simplePath.size();++i) {
+		//std::cout << g_simple.vertex_by_property(g[simplePath[i]]).is_initialized() << "\n";
+		if (!g_simple.vertex_by_property(g[simplePath[i]])==g_simple.null_vertex()) { //avoid duplicate vertices
+			//std::cout << g_simple.vertex_by_property(g[simplePath[i]]);
+			auto s = add_vertex(g_simple);
+			g_simple[s] = g[simplePath[i]];
+		}
+		if (i>0 && i < simplePath.size() && simplePath.size()>2 ) {
+			auto e = edge(simplePath[i - 1], simplePath[i], g_simple);
+			if (!edge(simplePath[i - 1], simplePath[i],g_simple).second) {
+				add_edge(simplePath[i - 1], simplePath[i], g_simple);
+				std::cout << "adding edge between " << g_simple[simplePath[i - 1]] << " and " << g_simple[simplePath[i]] << "\n";
+			}
+		}
+	}
+	simplePath.clear();
+	
+}
+
+Graph simplifyGraph(Graph& g_full, Graph& g_branching, Size size) {
+	
+	std::vector<v_d>* branchPoints= new std::vector<v_d>;
+	findClusters(g_full, g_branching, size, branchPoints);
+	Graph g_reduced;
+	vertexCluster old;
+	for (auto v : *branchPoints ) {
+		//auto s = ;
+		g_reduced[add_vertex(g_reduced)] = g_full[v];
+	}
+	std::vector<v_d>*pathalt= new std::vector<v_d>(num_vertices(g_full));// = new std::vector<v_d>;
+	std::vector<v_d> pathSegment;
+	int countIt = 0;
+	std::cout << branchPoints->size() << "\n";
+	v_d start = branchPoints->front(); //start vertex of shortest path
+	v_d fin;
+	
+	
+	
+	
+	std::cout <<branchPoints->size()<<"\n";
+
+	findPath(g_full, pathalt, start);
+	Mat shortestpath = Mat(size, CV_8UC3, Vec3b(0, 0, 0));
+	for (auto it = branchPoints->begin(); it != branchPoints->end(); ++it) {
+		
+		if (*it != start) {
+			fin = *it;
+			std::cout << "finding path from branch point" << g_full[start] << " to " << g_full[fin] << "\n";
+			specificPath(g_full, pathSegment, start, fin, pathalt);
+			simplifyPath(pathSegment, g_full, g_reduced);
+
+			for (auto p : pathSegment) {
+				Point x = g_full[p];
+				shortestpath.at<Vec3b>(x) = Vec3b(0, 255, 0);
+			}
+		}
+	}
+	
+	
+	
+	
+	namedWindow("shortest path", WINDOW_NORMAL);
+	imshow("shortest path", shortestpath);
+	imwrite("short.png", shortestpath);
+	delete branchPoints;
+	
+	delete pathalt;
+	//branchPoints->clear();
+	return g_reduced;
+}
+
+class truncator {
+public:
+	Graph * g;
+	Graph g_out;
+	std::vector<bool> visited;
+	std::vector<vertexCluster>* branches;
+	truncator(Graph* _g,std::vector<vertexCluster>* _branches){
+		g = _g;
+		branches = _branches;
+		visited = std::vector<bool>(num_vertices(*g), false);
+	}
+	void truncate() {
+		BGL_FORALL_VERTICES(v, *g, Graph) {
+			if (degree(v, *g) > 2) {
+				auto a = adjacent_vertices(v, *g);
+			}
+		}
+	}
+
+	
+
+};
